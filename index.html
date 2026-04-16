@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Card Component — Vanilla Demo</title>
+
+  <!--
+    HOW TO USE (vanilla HTML)
+    ─────────────────────────
+    1. Copy payment-card.css (or payment-card.scss if you use Sass) into your project.
+    2. Copy the <div class="pc-wrap"> block below into your checkout page.
+    3. Copy payment-card.js into your project and include it before </body>.
+    4. Optionally override CSS variables on :root to match your brand.
+
+    To swap the watermark logo:
+      Replace the <svg class="pc-card-logo"> element with your own SVG or an <img>.
+      Keep the class "pc-card-logo" so positioning/opacity rules still apply.
+  -->
+
+  <link rel="stylesheet" href="./payment-card.css" />
+
+  <!-- Optional: brand colour override example -->
+  <style>
+    body {
+      background: #f4f6fb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    /*
+      ── BRAND OVERRIDE EXAMPLE ────────────────────────────────────────────
+      Uncomment and edit to white-label the component:
+
+      :root {
+        --pc-accent:       #7c3aed;
+        --pc-accent-dark:  #6d28d9;
+        --pc-card-bg-from: #1e1b4b;
+        --pc-card-bg-to:   #312e81;
+        --pc-card-bg-end:  #1e1b4b;
+        --pc-font:         'Inter', sans-serif;
+      }
+      ─────────────────────────────────────────────────────────────────────
+    */
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PAYMENT CARD COMPONENT
+     ─────────────────────────────────────────────────────────────────────────
+     Copy everything from <div class="pc-wrap"> to its closing </div>
+     into your own page. The JS file handles all interactivity.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="pc-wrap" role="region" aria-label="Payment details">
+
+  <!-- Screen-reader heading (visually hidden) -->
+  <h2 class="pc-sr-only">Enter your payment card details</h2>
+
+  <!-- ── CARD PREVIEW ──────────────────────────────────────────────────── -->
+  <div class="pc-card" aria-hidden="true">
+
+    <!--
+      WATERMARK LOGO
+      Replace the SVG below with your brand mark.
+      Keep class="pc-card-logo" for correct positioning and opacity.
+      For an image: <img class="pc-card-logo" src="logo.svg" alt="" />
+    -->
+    <svg class="pc-card-logo" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <!-- Simplified house/home icon approximating the attached logo -->
+      <path d="M100 280 L100 185 L200 100 L300 185 L300 280 Z"
+            fill="none" stroke="white" stroke-width="22" stroke-linejoin="round"/>
+      <rect x="148" y="215" width="104" height="65" rx="10" fill="white"/>
+      <!-- Left accent block -->
+      <rect x="100" y="200" width="48" height="48" rx="8" fill="white" opacity="0.6"/>
+    </svg>
+
+    <!-- EMV Chip -->
+    <div class="pc-card-chip"></div>
+
+    <!-- PAN — updated live by JS -->
+    <div class="pc-card-number" id="pcDisplayNum" aria-label="Card number preview">
+      •••• •••• •••• ••••
+    </div>
+
+    <!-- Cardholder / Expiry / Network -->
+    <div class="pc-card-bottom">
+      <div>
+        <div class="pc-card-label">Cardholder</div>
+        <div class="pc-card-value" id="pcDisplayName">Full Name</div>
+      </div>
+      <div>
+        <div class="pc-card-label">Expires</div>
+        <div class="pc-card-value" id="pcDisplayExp">MM / YY</div>
+      </div>
+      <!--
+        Card network badge slot.
+        JS injects an inline SVG badge here when the network is detected.
+        Leave this div empty.
+      -->
+      <div class="pc-card-type" id="pcCardType"></div>
+    </div>
+  </div>
+  <!-- ── END CARD PREVIEW ─────────────────────────────────────────────── -->
+
+
+  <!-- ── FORM ─────────────────────────────────────────────────────────── -->
+  <form class="pc-form" id="pcForm" novalidate>
+
+    <!-- Cardholder Name -->
+    <div class="pc-field">
+      <label for="pcName">Cardholder name</label>
+      <div class="pc-input-wrap has-icon">
+        <input
+          type="text"
+          id="pcName"
+          name="cardholder-name"
+          placeholder="Jane Smith"
+          autocomplete="cc-name"
+          maxlength="26"
+          aria-required="true"
+          aria-describedby="pcNameHint"
+        />
+        <!-- Icon slot — JS injects checkmark SVG here on success -->
+        <span class="pc-icon" id="pcNameIcon" aria-hidden="true"></span>
+      </div>
+      <span class="pc-hint" id="pcNameHint" role="alert" aria-live="polite"></span>
+    </div>
+
+    <!-- Card Number -->
+    <div class="pc-field">
+      <label for="pcNum">Card number</label>
+      <div class="pc-input-wrap has-icon">
+        <input
+          type="tel"
+          id="pcNum"
+          name="card-number"
+          placeholder="0000 0000 0000 0000"
+          autocomplete="cc-number"
+          maxlength="19"
+          inputmode="numeric"
+          aria-required="true"
+          aria-describedby="pcNumHint"
+        />
+        <!-- Icon slot — JS injects card-type badge or checkmark here -->
+        <span class="pc-icon" id="pcNumIcon" aria-hidden="true"></span>
+      </div>
+      <span class="pc-hint" id="pcNumHint" role="alert" aria-live="polite"></span>
+    </div>
+
+    <!-- Expiry + CVV side by side -->
+    <div class="pc-row">
+
+      <div class="pc-field">
+        <label for="pcExp">Expiry date</label>
+        <div class="pc-input-wrap">
+          <input
+            type="tel"
+            id="pcExp"
+            name="expiry"
+            placeholder="MM / YY"
+            autocomplete="cc-exp"
+            maxlength="7"
+            inputmode="numeric"
+            aria-required="true"
+            aria-describedby="pcExpHint"
+          />
+        </div>
+        <span class="pc-hint" id="pcExpHint" role="alert" aria-live="polite"></span>
+      </div>
+
+      <div class="pc-field">
+        <label for="pcCvv">CVV</label>
+        <div class="pc-input-wrap">
+          <input
+            type="tel"
+            id="pcCvv"
+            name="cvv"
+            placeholder="•••"
+            autocomplete="cc-csc"
+            maxlength="4"
+            inputmode="numeric"
+            aria-required="true"
+            aria-describedby="pcCvvHint"
+          />
+        </div>
+        <span class="pc-hint" id="pcCvvHint" role="alert" aria-live="polite"></span>
+      </div>
+
+    </div><!-- /.pc-row -->
+
+    <!-- Submit -->
+    <button type="submit" class="pc-btn" id="pcSubmit">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="1" y="4" width="14" height="10" rx="2" stroke="white" stroke-width="1.5"/>
+        <path d="M1 7h14" stroke="white" stroke-width="1.5"/>
+        <path d="M4 10h3" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      Pay securely
+    </button>
+
+  </form>
+  <!-- ── END FORM ──────────────────────────────────────────────────────── -->
+
+</div>
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- Payment card JS — load just before </body> -->
+<script src="./payment-card.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,495 @@
+// =============================================================================
+// payment-card.scss
+// =============================================================================
+// A fully responsive, accessible payment-card form component.
+// Compatible with any CSS framework or bare HTML page.
+//
+// TABLE OF CONTENTS
+//   1. CSS Custom Properties (variables)
+//   2. Reset & base
+//   3. Layout wrapper
+//   4. Card visual (3-D preview face)
+//   5. Form fields
+//   6. Input states  (default / focus / error / success)
+//   7. Submit button
+//   8. Responsive breakpoints
+//   9. Dark-mode overrides
+//  10. Reduced-motion overrides
+// =============================================================================
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. CSS CUSTOM PROPERTIES
+//    All design tokens live here. Override any variable on :root or a parent
+//    selector to white-label the component without touching the rest of the file.
+//
+//    Example – swap to a brand palette:
+//      :root {
+//        --pc-accent:        #7c3aed;   // purple brand colour
+//        --pc-card-bg-from:  #1e1b4b;
+//        --pc-card-bg-to:    #312e81;
+//        --pc-font:          'Inter', sans-serif;
+//      }
+// ─────────────────────────────────────────────────────────────────────────────
+:root {
+  // Accent / interactive
+  --pc-accent:              #3b7be0;   // focus ring, submit button
+  --pc-accent-dark:         #2c60d4;   // submit button gradient end
+  --pc-success:             #3da86a;   // valid field
+  --pc-error:               #e24b4a;   // invalid field
+
+  // Card face
+  --pc-card-bg-from:        #1a2a4a;   // gradient start (top-left)
+  --pc-card-bg-to:          #2c3e70;   // gradient mid
+  --pc-card-bg-end:         #1a3060;   // gradient end (bottom-right)
+  --pc-card-text:           #ffffff;
+  --pc-card-chip-from:      #d4aa70;
+  --pc-card-chip-mid:       #f0d080;
+  --pc-card-chip-end:       #b8883a;
+  --pc-card-radius:         14px;
+  --pc-card-shadow:         0 8px 32px rgba(0, 0, 0, 0.22);
+
+  // Form surface
+  --pc-bg:                  #ffffff;   // input background
+  --pc-border:              #e0e0e0;   // default border
+  --pc-border-hover:        #c0c0c0;
+  --pc-text:                #111111;
+  --pc-placeholder:         #bbbbbb;
+  --pc-label:               #888888;
+
+  // Focus ring
+  --pc-focus-ring:          rgba(59, 123, 224, 0.13);
+  --pc-success-ring:        rgba(61, 168, 106, 0.11);
+  --pc-error-ring:          rgba(226,  75,  74, 0.11);
+
+  // Spacing & shape
+  --pc-radius-input:        10px;
+  --pc-radius-btn:          12px;
+  --pc-input-height:        44px;
+  --pc-gap:                 14px;
+  --pc-font:                system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. RESET & BASE
+// ─────────────────────────────────────────────────────────────────────────────
+.pc-wrap *,
+.pc-wrap *::before,
+.pc-wrap *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.pc-wrap {
+  font-family: var(--pc-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+// Screen-reader only utility (accessibility)
+.pc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. LAYOUT WRAPPER
+// ─────────────────────────────────────────────────────────────────────────────
+.pc-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem 1rem;
+  width: 100%;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. CARD VISUAL
+// ─────────────────────────────────────────────────────────────────────────────
+.pc-card {
+  // Standard ISO 7810 ID-1 aspect ratio (85.6 × 53.98 mm)
+  width: 340px;
+  max-width: 100%;
+  aspect-ratio: 85.6 / 53.98;
+  border-radius: var(--pc-card-radius);
+  background: linear-gradient(
+    135deg,
+    var(--pc-card-bg-from)  0%,
+    var(--pc-card-bg-to)   60%,
+    var(--pc-card-bg-end) 100%
+  );
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  color: var(--pc-card-text);
+  box-shadow: var(--pc-card-shadow);
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+// Brand logo watermark – centred, low opacity
+// Replace the SVG inside .pc-card-logo with your own <img> or <svg>
+.pc-card-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90px;
+  height: 90px;
+  opacity: 0.10;           // ← tweak opacity here (0.05–0.15 recommended)
+  pointer-events: none;
+  user-select: none;
+}
+
+// EMV chip simulation
+.pc-card-chip {
+  width: 36px;
+  height: 28px;
+  background: linear-gradient(
+    135deg,
+    var(--pc-card-chip-from),
+    var(--pc-card-chip-mid),
+    var(--pc-card-chip-end)
+  );
+  border-radius: 5px;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 1;
+
+  // Contact pad lines
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+}
+
+// PAN display
+.pc-card-number {
+  font-size: 17px;
+  letter-spacing: 3px;
+  font-family: 'Courier New', Courier, monospace;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+  opacity: 0.92;
+}
+
+// Cardholder / expiry / network row
+.pc-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.pc-card-label {
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 3px;
+}
+
+.pc-card-value {
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  opacity: 0.92;
+}
+
+// Network badge slot (top-right of card bottom row)
+.pc-card-type {
+  min-width: 48px;
+  text-align: right;
+
+  svg {
+    width: 48px;
+    height: auto;
+    display: block;
+    margin-left: auto;
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. FORM FIELDS
+// ─────────────────────────────────────────────────────────────────────────────
+.pc-form {
+  width: 340px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pc-gap);
+}
+
+.pc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--pc-label);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+}
+
+// Two-column row (Expiry + CVV)
+.pc-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+// Input wrapper – holds the input + trailing icon
+.pc-input-wrap {
+  position: relative;
+
+  // Push text left when an icon is present
+  &.has-icon input {
+    padding-right: 44px;
+  }
+}
+
+// Base input styles
+.pc-input-wrap input {
+  width: 100%;
+  height: var(--pc-input-height);
+  border-radius: var(--pc-radius-input);
+  border: 1.5px solid var(--pc-border);
+  background: var(--pc-bg);
+  color: var(--pc-text);
+  font-size: 15px;
+  padding: 0 14px;
+  outline: none;
+  font-family: var(--pc-font);
+  transition:
+    border-color 0.2s ease,
+    box-shadow  0.2s ease;
+
+  &::placeholder {
+    color: var(--pc-placeholder);
+    font-size: 13px;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--pc-border-hover);
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. INPUT STATES
+// ─────────────────────────────────────────────────────────────────────────────
+
+// FOCUS — applied automatically via :focus pseudo-class
+.pc-input-wrap input:focus {
+  border-color: var(--pc-accent);
+  box-shadow: 0 0 0 3px var(--pc-focus-ring);
+}
+
+// ERROR — add class="error" to the <input>
+.pc-input-wrap input.error {
+  border-color: var(--pc-error);
+  box-shadow: 0 0 0 3px var(--pc-error-ring);
+}
+
+// SUCCESS — add class="success" to the <input>
+.pc-input-wrap input.success {
+  border-color: var(--pc-success);
+  box-shadow: 0 0 0 3px var(--pc-success-ring);
+}
+
+// Trailing icon (checkmark / card-type logo)
+.pc-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+
+  &.visible {
+    opacity: 1;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// Hint / error message beneath an input
+.pc-hint {
+  font-size: 11px;
+  min-height: 16px;
+  transition: color 0.2s ease;
+  color: transparent; // invisible when empty — preserves layout space
+
+  &.error   { color: var(--pc-error); }
+  &.success { color: var(--pc-success); }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. SUBMIT BUTTON
+// ─────────────────────────────────────────────────────────────────────────────
+.pc-btn {
+  height: 48px;
+  border-radius: var(--pc-radius-btn);
+  border: none;
+  background: linear-gradient(135deg, var(--pc-accent-dark), var(--pc-accent));
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--pc-font);
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition:
+    opacity   0.2s ease,
+    transform 0.12s ease,
+    background 0.3s ease;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.75;
+  }
+
+  // Success variant — applied via JS after validation passes
+  &.state-success {
+    background: linear-gradient(135deg, #2a8a55, var(--pc-success));
+  }
+
+  // Error variant — applied via JS on failed submit attempt
+  &.state-error {
+    background: linear-gradient(135deg, #b32d2d, var(--pc-error));
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. RESPONSIVE BREAKPOINTS
+//    The component scales from 320 px (minimum) to full-width desktop.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Tablet / mid-width – slight padding reduction
+@media (max-width: 380px) {
+  .pc-card,
+  .pc-form {
+    width: 100%;
+  }
+
+  .pc-card-number {
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+}
+
+// Minimum width (320 px) – stack Expiry + CVV vertically
+@media (max-width: 320px) {
+  .pc-card {
+    padding: 14px;
+  }
+
+  .pc-card-number {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+  }
+
+  .pc-row {
+    grid-template-columns: 1fr; // stack vertically at 320 px
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. DARK-MODE OVERRIDES
+//    Uses the prefers-color-scheme media query.
+//    If your app uses a .dark class on <html>, replace the @media block with:
+//      html.dark .pc-wrap { ... }
+// ─────────────────────────────────────────────────────────────────────────────
+@media (prefers-color-scheme: dark) {
+  :root {
+    // Form surface
+    --pc-bg:              #1e1e2e;
+    --pc-border:          #3a3a54;
+    --pc-border-hover:    #555570;
+    --pc-text:            #e8e8f0;
+    --pc-placeholder:     #55556a;
+    --pc-label:           #8888aa;
+
+    // Rings adapt automatically via rgba — no change needed
+    // Card face stays the same (already dark by design)
+  }
+}
+
+// Class-based dark mode (opt-in alternative)
+// Usage: add class="dark" to a parent element, e.g. <body class="dark">
+.dark .pc-wrap,
+[data-theme="dark"] .pc-wrap {
+  --pc-bg:              #1e1e2e;
+  --pc-border:          #3a3a54;
+  --pc-border-hover:    #555570;
+  --pc-text:            #e8e8f0;
+  --pc-placeholder:     #55556a;
+  --pc-label:           #8888aa;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. REDUCED-MOTION
+//     Respect users who have set "Reduce motion" in their OS preferences.
+// ─────────────────────────────────────────────────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  .pc-card,
+  .pc-input-wrap input,
+  .pc-icon,
+  .pc-hint,
+  .pc-btn {
+    transition: none;
+  }
+}
